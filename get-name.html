@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trích xuất & Copy Tên từ Excel</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f7f9;
+        display: flex;
+        justify-content: center;
+        padding-top: 50px;
+      }
+      .card {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 600px;
+      }
+      h2 {
+        color: #333;
+        margin-top: 0;
+      }
+
+      .upload-section {
+        border: 2px dashed #3498db;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        background: #f8fbff;
+        margin-bottom: 20px;
+      }
+      input[type="file"] {
+        cursor: pointer;
+      }
+
+      .result-container {
+        display: none;
+        margin-top: 20px;
+        position: relative;
+      }
+      label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 8px;
+        color: #555;
+      }
+
+      #result-text {
+        width: 100%;
+        height: 120px;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: #fafafa;
+        font-size: 14px;
+        color: #333;
+        resize: none;
+        box-sizing: border-box;
+      }
+
+      .btn-copy {
+        margin-top: 10px;
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 6px;
+        background-color: #27ae60;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      .btn-copy:hover {
+        background-color: #219150;
+      }
+      .btn-copy:active {
+        transform: scale(0.98);
+      }
+
+      /* Hiệu ứng thông báo nhỏ */
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Excel to String</h2>
+      <div class="upload-section">
+        <input type="file" id="excel-file" accept=".xlsx, .xls" />
+        <p style="font-size: 12px; color: #666; margin-top: 8px">
+          (Chọn file có cột tiêu đề là "Tên")
+        </p>
+      </div>
+
+      <div id="result-wrapper" class="result-container">
+        <label>Dữ liệu đã chuyển đổi:</label>
+        <textarea id="result-text" readonly></textarea>
+        <button class="btn-copy" id="copy-btn">Sao chép vào bộ nhớ tạm</button>
+      </div>
+    </div>
+
+    <div id="toast" class="toast">Đã sao chép thành công!</div>
+
+    <script>
+      const fileInput = document.getElementById("excel-file");
+      const resultWrapper = document.getElementById("result-wrapper");
+      const resultText = document.getElementById("result-text");
+      const copyBtn = document.getElementById("copy-btn");
+      const toast = document.getElementById("toast");
+
+      fileInput.addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+
+          // Chuyển sang JSON
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          // Lấy cột "Tên" hoặc "Ten"
+          const namesArray = jsonData
+            .map((item) => item["Tên"] || item["Ten"])
+            .filter((name) => name); // Loại bỏ ô trống
+
+          if (namesArray.length > 0) {
+            const finalString = namesArray.join(", ");
+            resultText.value = finalString;
+            resultWrapper.style.display = "block";
+            console.log("Kết quả:", finalString);
+          } else {
+            alert("Không tìm thấy dữ liệu trong cột 'Tên'!");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+
+      // Xử lý sự kiện Copy
+      copyBtn.addEventListener("click", function () {
+        resultText.select();
+        resultText.setSelectionRange(0, 99999); // Cho thiết bị di động
+
+        navigator.clipboard.writeText(resultText.value).then(() => {
+          // Hiện thông báo (toast)
+          toast.style.opacity = "1";
+          setTimeout(() => {
+            toast.style.opacity = "0";
+          }, 2000);
+        });
+      });
+    </script>
+  </body>
+</html>
